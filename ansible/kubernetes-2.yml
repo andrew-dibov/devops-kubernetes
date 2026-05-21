@@ -4,7 +4,7 @@
   become: true
   gather_facts: true
 
-  vars_files: "variables.common.yml"
+  vars_files: "variables/variables.common.yml"
 
   vars:
     containerd_tar: containerd-{{ containerd_version }}-linux-amd64.tar.gz

@@ -5,8 +5,8 @@
   gather_facts: false
 
   vars_files:
-    - "variables.common.yml"
-    - "variables.terraform.yml"
+    - "variables/variables.common.yml"
+    - "variables/variables.terraform.yml"
 
   vars:
     helm_url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3

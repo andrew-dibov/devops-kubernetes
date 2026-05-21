@@ -5,8 +5,8 @@
   gather_facts: true
 
   vars_files:
-    - "variables.common.yml"
-    - "variables.terraform.yml"
+    - "variables/variables.common.yml"
+    - "variables/variables.terraform.yml"
 
   vars:
     flannel_url: https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
