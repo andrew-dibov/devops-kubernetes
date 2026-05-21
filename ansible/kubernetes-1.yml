@@ -1,0 +1,70 @@
+---
+- name: "K8s : prepare OS"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    packages:
+      - apt-transport-https
+      - ca-certificates
+      - gnupg
+
+    kernel_modules:
+      - overlay
+      - br_netfilter
+      - nf_conntrack
+
+    kernel_params:
+      - { name: net.bridge.bridge-nf-call-iptables, value: 1 }
+      - { name: net.ipv4.ip_forward, value: 1 }
+
+  tasks:
+    - name: "K8s : prepare OS : assert OS"
+      ansible.builtin.assert:
+        that: ansible_os_family == 'Debian'
+
+    - name: "K8s : prepare OS : get package facts"
+      ansible.builtin.package_facts:
+        manager: auto
+
+    - name: "K8s : prepare OS : install packages"
+      ansible.builtin.apt:
+        name: "{{ packages }}"
+        state: present
+        update_cache: true
+      when: "packages | difference(ansible_facts.packages.keys() | list) | length > 0"
+
+    - name: "K8s : prepare OS : configure kernel modules"
+      ansible.builtin.copy:
+        content: "{{ kernel_modules | join('\n') }}"
+        dest: /etc/modules-load.d/kubernetes-cri.conf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: "K8s : prepare OS : load kernel modules"
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ kernel_modules }}"
+
+    - name: "K8s : prepare OS : configure kernel params"
+      ansible.builtin.copy:
+        content: |
+          {% for param in kernel_params %}
+          {{ param.name }} = {{ param.value }}
+          {% endfor %}
+        dest: /etc/sysctl.d/99-kubernetes-cri.conf
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: "K8s : prepare OS : load kernel params"
+      loop: "{{ kernel_params }}"
+      ansible.builtin.sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        sysctl_file: /etc/sysctl.d/99-kubernetes-cri.conf
+        state: present
+        reload: true

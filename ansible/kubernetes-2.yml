@@ -1,0 +1,136 @@
+---
+- name: "K8s : install CRI"
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars_files: "variables.common.yml"
+
+  vars:
+    containerd_tar: containerd-{{ containerd_version }}-linux-amd64.tar.gz
+    containerd_url: https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/{{ containerd_tar }}
+
+    containerd_service: containerd.service
+    containerd_service_url: https://raw.githubusercontent.com/containerd/containerd/main/{{ containerd_service }}
+
+    runc_bin: runc.amd64
+    runc_url: https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/{{ runc_bin }}
+
+    cni_plugins_tar: cni-plugins-linux-amd64-v{{ cni_plugins_version }}.tgz
+    cni_plugins_url: https://github.com/containernetworking/plugins/releases/download/v{{ cni_plugins_version }}/{{ cni_plugins_tar }}
+
+  handlers:
+    - name: "K8s : install CRI : restart service"
+      ansible.builtin.systemd:
+        name: containerd
+        state: restarted
+        daemon_reload: true
+
+  tasks:
+    - name: "K8s : install CRI : create temp dir"
+      ansible.builtin.tempfile:
+        suffix: temp-
+        state: directory
+      register: temp
+
+    - block:
+        - name: "K8s : install CRI : get containerd tar"
+          ansible.builtin.get_url:
+            url: "{{ containerd_url }}"
+            dest: "{{ temp.path }}/{{ containerd_tar }}"
+            owner: root
+            group: root
+            mode: 0644
+            force: false
+
+        - name: "K8s : install CRI : extract containerd tar"
+          ansible.builtin.unarchive:
+            src: "{{ temp.path }}/{{ containerd_tar }}"
+            dest: /usr/local
+            creates: /usr/local/bin/containerd
+            owner: root
+            group: root
+            remote_src: true
+
+        - name: "K8s : install CRI : ensure service dir"
+          ansible.builtin.file:
+            path: /etc/systemd/system
+            state: directory
+
+        - name: "K8s : install CRI : get service"
+          ansible.builtin.get_url:
+            url: "{{ containerd_service_url }}"
+            dest: /etc/systemd/system/{{ containerd_service }}
+            owner: root
+            group: root
+            mode: 0644
+            force: false
+
+        - name: "K8s : install CRI : ensure config dir"
+          ansible.builtin.file:
+            path: /etc/containerd
+            state: directory
+
+        - name: "K8s : install CRI : deploy config"
+          ansible.builtin.template:
+            src: templates/config.toml.j2
+            dest: /etc/containerd/config.toml
+            owner: root
+            group: root
+            mode: 0644
+          notify: "K8s : install CRI : restart service"
+
+        - name: "K8s : install CRI : get runc bin"
+          ansible.builtin.get_url:
+            url: "{{ runc_url }}"
+            dest: "{{ temp.path }}/{{ runc_bin }}"
+            owner: root
+            group: root
+            mode: 0644
+            force: false
+
+        - name: "K8s : install CRI : install runc bin"
+          ansible.builtin.copy:
+            src: "{{ temp.path }}/{{ runc_bin }}"
+            dest: /usr/local/sbin/runc
+            owner: root
+            group: root
+            mode: 0755
+            remote_src: true
+
+        - name: "K8s : install CRI : get CNI plugins tar"
+          ansible.builtin.get_url:
+            url: "{{ cni_plugins_url }}"
+            dest: "{{ temp.path }}/{{ cni_plugins_tar }}"
+            owner: root
+            group: root
+            mode: 0644
+            force: false
+
+        - name: "K8s : install CRI : ensure CNI plugins dir"
+          ansible.builtin.file:
+            path: /opt/cni/bin
+            state: directory
+
+        - name: "K8s : install CRI : extract CNI plugins"
+          ansible.builtin.unarchive:
+            src: "{{ temp.path }}/{{ cni_plugins_tar }}"
+            dest: /opt/cni/bin
+            creates: /opt/cni/bin/bridge
+            owner: root
+            group: root
+            remote_src: true
+
+        - name: "K8s : install CRI : start service"
+          ansible.builtin.systemd:
+            name: containerd
+            state: started
+            enabled: true
+            daemon_reload: true
+
+      always:
+        - name: "K8s : install CRI : remove temp dir"
+          ansible.builtin.file:
+            path: "{{ temp.path }}"
+            state: absent
+          changed_when: false

@@ -1,0 +1,22 @@
+*
+
+# ---
+
+!*.tf
+!*.tftpl
+!*.sh
+!*.yml
+!*.j2
+
+!.gitignore
+!README.md
+!bash/
+!templates/
+!ansible/
+!ansible/templates/
+
+# ---
+
+backend.s3.tf
+data.virtual_private_cloud.tf
+*.terraform.yml

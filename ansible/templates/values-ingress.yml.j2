@@ -1,0 +1,15 @@
+controller:
+  service:
+    type: NodePort
+    nodePorts:
+      http: 30080
+      https: 30443
+  kind: DaemonSet
+  daemonset:
+    useHostPort: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 90Mi
+  config:
+    use-forwarded-headers: "true"

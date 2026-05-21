@@ -1,0 +1,101 @@
+---
+- name: "K8s : helm"
+  hosts: localhost
+  become: false
+  gather_facts: false
+
+  vars_files:
+    - "variables.common.yml"
+    - "variables.terraform.yml"
+
+  vars:
+    helm_url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+    prometheus_repo: https://prometheus-community.github.io/helm-charts
+    ingress_repo: https://kubernetes.github.io/ingress-nginx
+
+  tasks:
+    - name: "K8s : helm : check kubeconfig"
+      ansible.builtin.stat:
+        path: "{{ kubernetes_config }}"
+      register: kubeconfig
+
+    - name: "K8s : helm : fail if kubeconfig missing"
+      ansible.builtin.fail:
+        msg: "kubeconfig not found"
+      when: not kubeconfig.stat.exists
+
+    - name: "K8s : helm : check if installed"
+      ansible.builtin.command:
+        cmd: command -v helm
+      register: helm_installed
+      failed_when: false
+      changed_when: false
+
+    - block:
+        - name: "K8s : helm : get install script"
+          ansible.builtin.get_url:
+            url: "{{ helm_url }}"
+            dest: /tmp/helm.sh
+            mode: 0755
+
+        - name: "K8s : helm : exec install script"
+          ansible.builtin.command:
+            cmd: /tmp/helm.sh
+          register: helm_install_result
+          changed_when: true
+
+      when: helm_installed.rc != 0
+
+      always:
+        - name: "K8s : helm : delete install script"
+          ansible.builtin.file:
+            path: /tmp/helm.sh
+            state: absent
+          changed_when: false
+
+    - name: "K8s : helm : install ingress repo"
+      kubernetes.core.helm_repository:
+        name: ingress-nginx
+        repo_url: "{{ ingress_repo }}"
+        kubeconfig: "{{ kubernetes_config }}"
+
+    - name: "K8s : helm : install prometheus repo"
+      kubernetes.core.helm_repository:
+        name: prometheus-community
+        repo_url: "{{ prometheus_repo }}"
+        kubeconfig: "{{ kubernetes_config }}"
+
+    - name: "K8s : helm : update repo"
+      ansible.builtin.command:
+        cmd: helm repo update
+      environment:
+        KUBECONFIG: "{{ kubernetes_config }}"
+      changed_when: false
+
+    - name: "K8s : helm : install ingress"
+      kubernetes.core.helm:
+        name: ingress-nginx
+        namespace: ingress-nginx
+        create_namespace: true
+        chart_ref: "ingress-nginx/ingress-nginx"
+        chart_version: "{{ helm_ingress_version }}"
+        kubeconfig: "{{ kubernetes_config }}"
+        values: "{{ lookup('template', 'templates/values-ingress.yml.j2') | from_yaml }}"
+
+    - name: "K8s : helm : install prometheus"
+      kubernetes.core.helm:
+        name: kube-prometheus-stack
+        namespace: monitoring
+        create_namespace: true
+        chart_ref: "prometheus-community/kube-prometheus-stack"
+        chart_version: "{{ helm_prometheus_version }}"
+        kubeconfig: "{{ kubernetes_config }}"
+        values: "{{ lookup('template', 'templates/values-prometheus.yml.j2') | from_yaml }}"
+
+    - name: "K8s : helm : install blackbox"
+      kubernetes.core.helm:
+        name: blackbox-exporter
+        namespace: monitoring
+        chart_ref: prometheus-community/prometheus-blackbox-exporter
+        chart_version: "{{ helm_blackbox_version }}"
+        kubeconfig: "{{ kubernetes_config }}"

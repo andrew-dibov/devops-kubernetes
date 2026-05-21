@@ -1,0 +1,55 @@
+---
+- name: "K8s : join worker nodes"
+  hosts:
+    - worker-a
+    - worker-b
+  become: true
+
+  tasks:
+    - name: "K8s : join worker nodes : check if joined"
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: is_joined
+
+    - name: "K8s : join worker nodes : check script"
+      ansible.builtin.stat:
+        path: ./join_workers_cmd.sh
+      delegate_to: localhost
+      become: false
+      register: script
+
+    - name: "K8s : join worker nodes : fail without script"
+      ansible.builtin.fail:
+        msg: "Join script not found"
+      when: not script.stat.exists
+
+    - block:
+        - name: "K8s : join control-plane nodes : copy script"
+          ansible.builtin.copy:
+            src: ./join_workers_cmd.sh
+            dest: /tmp/join_workers.sh
+            owner: root
+            group: root
+            mode: 0755
+
+        - name: "K8s : join control-plane nodes : exec script"
+          ansible.builtin.command:
+            cmd: /tmp/join_workers.sh
+          register: join_result
+          changed_when: true
+
+      always:
+        - name: "K8s : join control-plane nodes : delete script"
+          ansible.builtin.file:
+            path: /tmp/join_workers.sh
+            state: absent
+          changed_when: false
+      when: not is_joined.stat.exists
+
+    - name: "K8s : join control-plane nodes : clean up"
+      ansible.builtin.file:
+        path: ./join_workers_cmd.sh
+        state: absent
+      delegate_to: localhost
+      become: false
+      when: join_result is defined and join_result.changed

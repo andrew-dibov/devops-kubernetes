@@ -1,0 +1,123 @@
+---
+- name: "K8s : init kubernetes"
+  hosts: master-a
+  become: true
+  gather_facts: true
+
+  vars_files:
+    - "variables.common.yml"
+    - "variables.terraform.yml"
+
+  vars:
+    flannel_url: https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+
+  tasks:
+    - name: "K8s : init kubernetes : ensure kubeadm dir"
+      ansible.builtin.file:
+        path: /root/kubeadm
+        state: directory
+        owner: root
+        group: root
+        mode: 0755
+
+    - name: "K8s : init kubernetes : deploy kubeadm config"
+      ansible.builtin.template:
+        src: templates/kubeadm-config.yml.j2
+        dest: /root/kubeadm/kubeadm-config.yml
+        owner: root
+        group: root
+        mode: 0644
+
+    - name: "K8s : init kubernetes : check if cluster init"
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: is_init
+
+    - block:
+        - name: "K8s : init kubernetes : init cluster"
+          ansible.builtin.command:
+            cmd: /usr/bin/kubeadm init --config /root/kubeadm/kubeadm-config.yml --upload-certs
+          changed_when: true
+
+        - name: "K8s : init kubernetes : ensure .kube dir"
+          ansible.builtin.file:
+            path: /root/.kube
+            state: directory
+            owner: root
+            group: root
+            mode: 0700
+
+        - name: "K8s : init kubernetes : copy admin.conf"
+          ansible.builtin.copy:
+            src: /etc/kubernetes/admin.conf
+            dest: /root/.kube/config
+            owner: root
+            group: root
+            mode: 0600
+            remote_src: true
+
+        - name: "K8s : init kubernetes : fetch config"
+          ansible.builtin.fetch:
+            src: /etc/kubernetes/admin.conf
+            dest: "{{ kubernetes_config }}"
+            flat: true
+
+        - name: "K8s : init kubernetes : modify config"
+          ansible.builtin.replace:
+            path: "{{ kubernetes_config }}"
+            regexp: "server: https://127.0.0.1:6443"
+            replace: "server: https://{{ api_endpoint }}:6443"
+          delegate_to: localhost
+          become: false
+
+      when: not is_init.stat.exists
+
+    - name: "K8s : init kubernetes : deploy flannel"
+      ansible.builtin.command:
+        cmd: kubectl apply -f {{ flannel_url }}
+      environment:
+        KUBECONFIG: /root/.kube/config
+      when: not is_init.stat.exists
+
+    - block:
+        - name: "K8s : init kubernetes : upload certs"
+          ansible.builtin.command:
+            cmd: kubeadm init phase upload-certs --upload-certs
+          register: cert
+          changed_when: false
+
+        - name: "K8s : init kubernetes : extract key"
+          ansible.builtin.set_fact:
+            cert_key: "{{ cert.stdout_lines[-1] }}"
+
+        - name: "K8s : init kubernetes : gen join cmd for masters"
+          ansible.builtin.command:
+            cmd: "kubeadm token create --print-join-command --certificate-key {{ cert_key }}"
+          register: join_masters_cmd
+
+        - name: "K8s : init kubernetes : save cmd for masters"
+          ansible.builtin.copy:
+            content: |
+              #!/bin/bash
+              {{ join_masters_cmd.stdout }}
+            dest: ./join_masters_cmd.sh
+            mode: 0755
+          delegate_to: localhost
+          become: false
+
+        - name: "K8s : init kubernetes : gen join cmd for workers"
+          ansible.builtin.command:
+            cmd: kubeadm token create --print-join-command
+          register: join_workers_cmd
+
+        - name: "K8s : init kubernetes : save cmd for workers"
+          ansible.builtin.copy:
+            content: |
+              #!/bin/bash
+              {{ join_workers_cmd.stdout }}
+            dest: ./join_workers_cmd.sh
+            mode: 0755
+          delegate_to: localhost
+          become: false
+
+      when: not is_init.stat.exists

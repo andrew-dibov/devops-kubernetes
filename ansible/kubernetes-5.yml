@@ -1,0 +1,53 @@
+---
+- name: "K8s : join control-plane nodes"
+  hosts: master-b
+  become: true
+
+  tasks:
+    - name: "K8s : join control-plane nodes : check if joined"
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: is_joined
+
+    - name: "K8s : join control-plane nodes : check script"
+      ansible.builtin.stat:
+        path: ./join_masters_cmd.sh
+      delegate_to: localhost
+      become: false
+      register: script
+
+    - name: "K8s : join control-plane nodes : fail without script"
+      ansible.builtin.fail:
+        msg: "Join script not found"
+      when: not script.stat.exists
+
+    - block:
+        - name: "K8s : join control-plane nodes : copy script"
+          ansible.builtin.copy:
+            src: ./join_masters_cmd.sh
+            dest: /tmp/join_masters.sh
+            owner: root
+            group: root
+            mode: 0755
+
+        - name: "K8s : join control-plane nodes : exec script"
+          ansible.builtin.command:
+            cmd: /tmp/join_masters.sh
+          register: join_result
+          changed_when: true
+
+      always:
+        - name: "K8s : join control-plane nodes : delete script"
+          ansible.builtin.file:
+            path: /tmp/join_masters.sh
+            state: absent
+          changed_when: false
+      when: not is_joined.stat.exists
+
+    - name: "K8s : join control-plane nodes : clean up"
+      ansible.builtin.file:
+        path: ./join_masters_cmd.sh
+        state: absent
+      delegate_to: localhost
+      become: false
+      when: join_result is defined and join_result.changed
