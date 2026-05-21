@@ -10,10 +10,13 @@
 
 !.gitignore
 !README.md
+
 !bash/
 !templates/
+
 !ansible/
 !ansible/templates/
+!ansible/variables/
 
 # ---
 

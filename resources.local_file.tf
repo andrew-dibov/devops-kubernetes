@@ -46,14 +46,14 @@ resource "local_file" "lf__ansible_config" {
 }
 
 resource "local_file" "lf__ansible_inventory" {
-  filename = "${var.ansible}/${var.lf__ansible_inventory_filename}"
+  filename = "${var.ansible}/inventories/${var.lf__ansible_inventory_filename}"
   content = templatefile("${var.templates}/ansible.inventory.tftpl", {
     hosts = yandex_compute_instance.ci__kubernetes
   })
 }
 
 resource "local_file" "lf__ansible_variables" {
-  filename = "${var.ansible}/${var.lf__ansible_variables_filename}"
+  filename = "${var.ansible}/variables/${var.lf__ansible_variables_filename}"
   content = templatefile("${var.templates}/ansible.variables.tftpl", {
     master_a = yandex_compute_instance.ci__kubernetes["${local.ci__kubernetes_names.ci__master_a}"].network_interface[0].ip_address
     master_b = yandex_compute_instance.ci__kubernetes["${local.ci__kubernetes_names.ci__master_b}"].network_interface[0].ip_address

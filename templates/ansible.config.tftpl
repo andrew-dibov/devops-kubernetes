@@ -1,4 +1,9 @@
 [defaults]
+inventory = inventories/inventory.terraform.yml
+
+ssh_args = -F ssh-config -o ControlMaster=auto -o ControlPersist=30m
 interpreter_python = /usr/bin/python3
 host_key_checking = False
+
+[ssh_connection]
 ssh_args = -F ssh-config -o ControlMaster=auto -o ControlPersist=30m -o ServerAliveInterval=60
