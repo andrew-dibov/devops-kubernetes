@@ -69,6 +69,8 @@ resource "local_file" "lf__ansible_variables" {
       for l in yandex_lb_network_load_balancer.lb__kubernetes_ingress.listener :
       tolist(l.external_address_spec)[0].address
     ])[0]
+
+    atlantis_node = local.ci__kubernetes_names.ci__worker_a
   })
 }
 

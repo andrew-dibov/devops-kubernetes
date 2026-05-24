@@ -41,7 +41,7 @@
         dest: /etc/modules-load.d/kubernetes-cri.conf
         owner: root
         group: root
-        mode: 0644
+        mode: "0644"
 
     - name: "K8s : prepare OS : load kernel modules"
       community.general.modprobe:
@@ -58,7 +58,7 @@
         dest: /etc/sysctl.d/99-kubernetes-cri.conf
         owner: root
         group: root
-        mode: 0644
+        mode: "0644"
 
     - name: "K8s : prepare OS : load kernel params"
       loop: "{{ kernel_params }}"

@@ -7,11 +7,10 @@
   vars_files:
     - "variables/variables.common.yml"
     - "variables/variables.terraform.yml"
+    - "variables/variables.vault.yml"
 
   vars:
     helm_url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-    prometheus_repo: https://prometheus-community.github.io/helm-charts
-    ingress_repo: https://kubernetes.github.io/ingress-nginx
 
   tasks:
     - name: "K8s : helm : check kubeconfig"
@@ -36,7 +35,7 @@
           ansible.builtin.get_url:
             url: "{{ helm_url }}"
             dest: /tmp/helm.sh
-            mode: 0755
+            mode: "0755"
 
         - name: "K8s : helm : exec install script"
           ansible.builtin.command:
@@ -52,20 +51,18 @@
             path: /tmp/helm.sh
             state: absent
           changed_when: false
-
-    - name: "K8s : helm : install ingress repo"
+      
+    - name: "K8s : helm : install repos"
       kubernetes.core.helm_repository:
-        name: ingress-nginx
-        repo_url: "{{ ingress_repo }}"
+        name: "{{ item.name }}"
+        repo_url: "{{ item.repo_url }}"
         kubeconfig: "{{ kubernetes_config }}"
+      loop:
+        - { name: "prometheus", repo_url: "https://prometheus-community.github.io/helm-charts" }
+        - { name: "ingress", repo_url: "https://kubernetes.github.io/ingress-nginx" }
+        - { name: "atlantis", repo_url: "https://runatlantis.github.io/helm-charts" }
 
-    - name: "K8s : helm : install prometheus repo"
-      kubernetes.core.helm_repository:
-        name: prometheus-community
-        repo_url: "{{ prometheus_repo }}"
-        kubeconfig: "{{ kubernetes_config }}"
-
-    - name: "K8s : helm : update repo"
+    - name: "K8s : helm : update repos"
       ansible.builtin.command:
         cmd: helm repo update
       environment:
@@ -74,28 +71,102 @@
 
     - name: "K8s : helm : install ingress"
       kubernetes.core.helm:
-        name: ingress-nginx
-        namespace: ingress-nginx
+        name: ingress
+        namespace: kube-ingress
         create_namespace: true
-        chart_ref: "ingress-nginx/ingress-nginx"
+        chart_ref: ingress/ingress-nginx
         chart_version: "{{ helm_ingress_version }}"
-        kubeconfig: "{{ kubernetes_config }}"
         values: "{{ lookup('template', 'templates/values-ingress.yml.j2') | from_yaml }}"
+        kubeconfig: "{{ kubernetes_config }}"
 
     - name: "K8s : helm : install prometheus"
       kubernetes.core.helm:
-        name: kube-prometheus-stack
-        namespace: monitoring
+        name: prometheus
+        namespace: kube-observability
         create_namespace: true
-        chart_ref: "prometheus-community/kube-prometheus-stack"
+        chart_ref: prometheus/kube-prometheus-stack
         chart_version: "{{ helm_prometheus_version }}"
         kubeconfig: "{{ kubernetes_config }}"
         values: "{{ lookup('template', 'templates/values-prometheus.yml.j2') | from_yaml }}"
 
-    - name: "K8s : helm : install blackbox"
-      kubernetes.core.helm:
-        name: blackbox-exporter
-        namespace: monitoring
-        chart_ref: prometheus-community/prometheus-blackbox-exporter
-        chart_version: "{{ helm_blackbox_version }}"
+    - name: "K8s : helm : create atlantis dir"
+      become: true
+      delegate_to: worker-a
+      ansible.builtin.file:
+        path: /mnt/{{ atlantis_pvc }}
+        state: directory
+        owner: 100
+        group: 100
+        mode: "0755"
+
+    - name: "K8s : helm : create atlantis namespace"
+      kubernetes.core.k8s:
         kubeconfig: "{{ kubernetes_config }}"
+        name: "{{ atlantis_namespace }}"
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: "K8s : helm : create PV"
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubernetes_config }}"
+        definition:
+          apiVersion: v1
+          kind: PersistentVolume
+          metadata:
+            name: atlantis-pv
+            labels:
+              app: atlantis
+          spec:
+            capacity:
+              storage: 5Gi
+            accessModes:
+              - ReadWriteOnce
+            persistentVolumeReclaimPolicy: Retain
+            storageClassName: ""
+            local:
+              path: /mnt/{{ atlantis_pvc }}
+            nodeAffinity:
+              required:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - "{{ atlantis_node }}"
+        
+    - name: "K8s : helm : create PVC"
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubernetes_config }}"
+        definition:
+          apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: "{{ atlantis_pvc }}"
+            namespace: "{{ atlantis_namespace }}"
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 5Gi
+            storageClassName: ""
+            volumeName: atlantis-pv
+
+    - name: "K8s : helm : install atlantis"
+      kubernetes.core.helm:
+        name: atlantis
+        namespace: "{{ atlantis_namespace }}"
+        create_namespace: true
+        chart_ref: atlantis/atlantis
+        chart_version: "{{ helm_atlantis_version }}"
+        kubeconfig: "{{ kubernetes_config }}"
+        values: "{{ lookup('template', 'templates/values-atlantis.yml.j2') | from_yaml }}"
+
+    # - name: "K8s : helm : install blackbox"
+    #   kubernetes.core.helm:
+    #     name: blackbox-exporter
+    #     namespace: monitoring
+    #     chart_ref: prometheus-community/prometheus-blackbox-exporter
+    #     chart_version: "{{ helm_blackbox_version }}"
+    #     kubeconfig: "{{ kubernetes_config }}"

@@ -1,0 +1,44 @@
+atlantisUrl: "{{ atlantis_url }}"
+orgAllowlist: "{{ atlantis_allowlist }}"
+
+githubApp:
+  id: "{{ github_app_id }}"
+  key: |
+    {{ github_app_key | indent(4) }}
+  secret: "{{ github_app_secret }}"
+
+volumeClaim:
+  enabled: false
+  dataStorage: 5Gi
+  existingClaim: "{{ atlantis_pvc }}"
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - {{ atlantis_node }}
+
+volumeClaim:
+  enabled: false
+
+extraVolumes:
+  - name: atlantis-volume
+    persistentVolumeClaim:
+      claimName: "{{ atlantis_pvc }}"
+
+extraVolumeMounts:
+  - name: atlantis-volume
+    mountPath: /atlantis-data
+
+containerSecurityContext:
+  readOnlyRootFilesystem: false
+
+statefulSet:
+  securityContext:
+    fsGroup: 100
+    runAsUser: 100
+    runAsGroup: 100

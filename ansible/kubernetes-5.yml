@@ -28,7 +28,7 @@
             dest: /tmp/join_masters.sh
             owner: root
             group: root
-            mode: 0755
+            mode: "0755"
 
         - name: "K8s : join control-plane nodes : exec script"
           ansible.builtin.command:

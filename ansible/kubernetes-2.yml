@@ -40,7 +40,7 @@
             dest: "{{ temp.path }}/{{ containerd_tar }}"
             owner: root
             group: root
-            mode: 0644
+            mode: "0644"
             force: false
 
         - name: "K8s : install CRI : extract containerd tar"
@@ -63,7 +63,7 @@
             dest: /etc/systemd/system/{{ containerd_service }}
             owner: root
             group: root
-            mode: 0644
+            mode: "0644"
             force: false
 
         - name: "K8s : install CRI : ensure config dir"
@@ -77,7 +77,7 @@
             dest: /etc/containerd/config.toml
             owner: root
             group: root
-            mode: 0644
+            mode: "0644"
           notify: "K8s : install CRI : restart service"
 
         - name: "K8s : install CRI : get runc bin"
@@ -86,7 +86,7 @@
             dest: "{{ temp.path }}/{{ runc_bin }}"
             owner: root
             group: root
-            mode: 0644
+            mode: "0644"
             force: false
 
         - name: "K8s : install CRI : install runc bin"
@@ -95,7 +95,7 @@
             dest: /usr/local/sbin/runc
             owner: root
             group: root
-            mode: 0755
+            mode: "0755"
             remote_src: true
 
         - name: "K8s : install CRI : get CNI plugins tar"
@@ -104,7 +104,7 @@
             dest: "{{ temp.path }}/{{ cni_plugins_tar }}"
             owner: root
             group: root
-            mode: 0644
+            mode: "0644"
             force: false
 
         - name: "K8s : install CRI : ensure CNI plugins dir"

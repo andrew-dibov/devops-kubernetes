@@ -18,7 +18,7 @@
         state: directory
         owner: root
         group: root
-        mode: 0755
+        mode: "0755"
 
     - name: "K8s : init kubernetes : deploy kubeadm config"
       ansible.builtin.template:
@@ -26,7 +26,7 @@
         dest: /root/kubeadm/kubeadm-config.yml
         owner: root
         group: root
-        mode: 0644
+        mode: "0644"
 
     - name: "K8s : init kubernetes : check if cluster init"
       ansible.builtin.stat:
@@ -45,7 +45,7 @@
             state: directory
             owner: root
             group: root
-            mode: 0700
+            mode: "0700"
 
         - name: "K8s : init kubernetes : copy admin.conf"
           ansible.builtin.copy:
@@ -53,7 +53,7 @@
             dest: /root/.kube/config
             owner: root
             group: root
-            mode: 0600
+            mode: "0600"
             remote_src: true
 
         - name: "K8s : init kubernetes : fetch config"
@@ -101,7 +101,7 @@
               #!/bin/bash
               {{ join_masters_cmd.stdout }}
             dest: ./join_masters_cmd.sh
-            mode: 0755
+            mode: "0755"
           delegate_to: localhost
           become: false
 
@@ -116,7 +116,7 @@
               #!/bin/bash
               {{ join_workers_cmd.stdout }}
             dest: ./join_workers_cmd.sh
-            mode: 0755
+            mode: "0755"
           delegate_to: localhost
           become: false
 

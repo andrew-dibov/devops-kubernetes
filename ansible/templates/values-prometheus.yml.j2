@@ -8,22 +8,6 @@ prometheus:
   service:
     type: NodePort
     nodePort: 30301
-  prometheusSpec:
-    additionalScrapeConfigs:
-      - job_name: 'blackbox-http'
-        metrics_path: /probe
-        params:
-          module: [http_2xx]
-        static_configs:
-          - targets:
-            - http://{{ ingress_endpoint }}
-        relabel_configs:
-          - source_labels: [__address__]
-            target_label: __param_target
-          - source_labels: [__param_target]
-            target_label: instance
-          - target_label: __address__
-            replacement: blackbox-exporter.monitoring.svc.cluster.local:9115
 
 alertmanager:
   service:
