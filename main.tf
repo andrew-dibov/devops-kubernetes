@@ -18,7 +18,3 @@ terraform {
     }
   }
 }
-
-provider "yandex" {
-  service_account_key_file = "terraform.key.json"
-}

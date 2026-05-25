@@ -74,6 +74,8 @@ data "terraform_remote_state" "network" {
 }
 EOF
 
+export YC_SERVICE_ACCOUNT_KEY_FILE="terraform.key.json"
+
 terraform init && terraform apply -auto-approve
 
 echo "export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" > aws.env

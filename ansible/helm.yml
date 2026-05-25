@@ -89,85 +89,115 @@
         kubeconfig: "{{ kubernetes_config }}"
         values: "{{ lookup('template', 'templates/values-prometheus.yml.j2') | from_yaml }}"
 
-    - name: "K8s : helm : create atlantis dir"
-      become: true
-      delegate_to: worker-a
-      ansible.builtin.file:
-        path: /mnt/{{ atlantis_pvc }}
-        state: directory
-        owner: 100
-        group: 100
-        mode: "0755"
-
-    - name: "K8s : helm : create atlantis namespace"
-      kubernetes.core.k8s:
-        kubeconfig: "{{ kubernetes_config }}"
-        name: "{{ atlantis_namespace }}"
-        api_version: v1
-        kind: Namespace
-        state: present
-
-    - name: "K8s : helm : create PV"
-      kubernetes.core.k8s:
-        kubeconfig: "{{ kubernetes_config }}"
-        definition:
-          apiVersion: v1
-          kind: PersistentVolume
-          metadata:
-            name: atlantis-pv
-            labels:
-              app: atlantis
-          spec:
-            capacity:
-              storage: 5Gi
-            accessModes:
-              - ReadWriteOnce
-            persistentVolumeReclaimPolicy: Retain
-            storageClassName: ""
-            local:
-              path: /mnt/{{ atlantis_pvc }}
-            nodeAffinity:
-              required:
-                nodeSelectorTerms:
-                  - matchExpressions:
-                      - key: kubernetes.io/hostname
-                        operator: In
-                        values:
-                          - "{{ atlantis_node }}"
-        
-    - name: "K8s : helm : create PVC"
-      kubernetes.core.k8s:
-        kubeconfig: "{{ kubernetes_config }}"
-        definition:
-          apiVersion: v1
-          kind: PersistentVolumeClaim
-          metadata:
-            name: "{{ atlantis_pvc }}"
-            namespace: "{{ atlantis_namespace }}"
-          spec:
-            accessModes:
-              - ReadWriteOnce
-            resources:
-              requests:
-                storage: 5Gi
-            storageClassName: ""
-            volumeName: atlantis-pv
-
-    # - name: Debug Atlantis values
-    #   copy:
-    #     content: "{{ lookup('template', 'templates/values-atlantis.yml.j2') }}"
-    #     dest: /tmp/atlantis-values-debug.yaml
-    #   delegate_to: localhost
-
     - name: "K8s : helm : install atlantis"
-      kubernetes.core.helm:
-        name: atlantis
-        namespace: "{{ atlantis_namespace }}"
-        create_namespace: true
-        chart_ref: atlantis/atlantis
-        chart_version: "{{ helm_atlantis_version }}"
-        kubeconfig: "{{ kubernetes_config }}"
-        values: "{{ lookup('template', 'templates/values-atlantis.yml.j2') | from_yaml }}"
+      block:
+
+        - name: "K8s : helm : create mount dir"
+          become: true
+          delegate_to: worker-a
+          ansible.builtin.file:
+            path: /mnt
+            state: directory
+            owner: 100
+            group: 100
+            mode: "0755"
+          loop:
+            - "/mnt"
+            - "/mnt/{{ atlantis_pvc }}"
+
+        - name: "K8s : helm : create namespace"
+          kubernetes.core.k8s:
+            kubeconfig: "{{ kubernetes_config }}"
+            name: "{{ atlantis_namespace }}"
+            api_version: v1
+            kind: Namespace
+            state: present
+
+        - name: "K8s : helm : create persistent volume"
+          kubernetes.core.k8s:
+            kubeconfig: "{{ kubernetes_config }}"
+            definition:
+              apiVersion: v1
+              kind: PersistentVolume
+              metadata:
+                name: atlantis-pv
+                labels:
+                  app: atlantis
+              spec:
+                capacity:
+                  storage: 5Gi
+                accessModes:
+                  - ReadWriteOnce
+                persistentVolumeReclaimPolicy: Retain
+                storageClassName: ""
+                local:
+                  path: /mnt/{{ atlantis_pvc }}
+                nodeAffinity:
+                  required:
+                    nodeSelectorTerms:
+                      - matchExpressions:
+                          - key: kubernetes.io/hostname
+                            operator: In
+                            values:
+                              - "{{ atlantis_node }}"
+        
+        - name: "K8s : helm : create persistent volume claim"
+          kubernetes.core.k8s:
+            kubeconfig: "{{ kubernetes_config }}"
+            definition:
+              apiVersion: v1
+              kind: PersistentVolumeClaim
+              metadata:
+                name: "{{ atlantis_pvc }}"
+                namespace: "{{ atlantis_namespace }}"
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 5Gi
+                storageClassName: ""
+                volumeName: atlantis-pv
+
+        - name: "K8s : helm : create configmap"
+          kubernetes.core.k8s:
+            kubeconfig: "{{ kubernetes_config }}"
+            definition:
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: atlantis-terraformrc
+                namespace: "{{ atlantis_namespace }}"
+              data:
+                terraformrc: "{{ lookup('template', 'templates/terraformrc.j2') }}"
+
+        - name: "K8s : helm : create secret"
+          kubernetes.core.k8s:
+            kubeconfig: "{{ kubernetes_config }}"
+            definition:
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: yc-sa-key
+                namespace: "{{ atlantis_namespace }}"
+              stringData:
+                terraform.key.json: "{{ yc_sa_key | b64encode }}"
+
+        - name: ATLANTIS DEBUG
+          delegate_to: localhost
+          copy:
+            content: "{{ lookup('template', 'templates/values-atlantis.yml.j2') }}"
+            dest: /tmp/atlantis-values-debug.yaml
+
+        - name: "K8s : helm : install atlantis"
+          kubernetes.core.helm:
+            name: atlantis
+            namespace: "{{ atlantis_namespace }}"
+            create_namespace: true
+            chart_ref: atlantis/atlantis
+            chart_version: "{{ helm_atlantis_version }}"
+            kubeconfig: "{{ kubernetes_config }}"
+            values: "{{ lookup('template', 'templates/values-atlantis.yml.j2') | from_yaml }}"
 
     # - name: "K8s : helm : install blackbox"
     #   kubernetes.core.helm:

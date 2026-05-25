@@ -9,8 +9,6 @@ githubApp:
 
 volumeClaim:
   enabled: false
-  dataStorage: 5Gi
-  existingClaim: "{{ atlantis_pvc }}"
 
 affinity:
   nodeAffinity:
@@ -22,18 +20,6 @@ affinity:
           values:
           - {{ atlantis_node }}
 
-volumeClaim:
-  enabled: false
-
-extraVolumes:
-  - name: atlantis-volume
-    persistentVolumeClaim:
-      claimName: "{{ atlantis_pvc }}"
-
-extraVolumeMounts:
-  - name: atlantis-volume
-    mountPath: /atlantis-data
-
 containerSecurityContext:
   readOnlyRootFilesystem: false
 
@@ -42,3 +28,33 @@ statefulSet:
     fsGroup: 100
     runAsUser: 100
     runAsGroup: 100
+
+extraVolumes:
+  - name: atlantis-volume
+    persistentVolumeClaim:
+      claimName: "{{ atlantis_pvc }}"
+
+  - name: terraformrc-volume
+    configMap:
+      name: atlantis-terraformrc
+
+  - name: terraform-key-volume
+    secret:
+      secretName: yc-sa-key
+
+extraVolumeMounts:
+  - name: atlantis-volume
+    mountPath: /atlantis-data
+
+  - name: terraformrc-volume
+    mountPath: /home/atlantis/.terraformrc
+    subPath: terraformrc
+    readOnly: true
+
+  - name: terraform-key-volume
+    mountPath: /home/atlantis/.yandex
+    readOnly: true
+
+environment:
+  YC_SERVICE_ACCOUNT_KEY_FILE: "/home/atlantis/.yandex/terraform.key.json"
+

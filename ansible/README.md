@@ -10,6 +10,8 @@ github_app_key: |
   -----BEGIN RSA PRIVATE KEY-----
   <rsa-private-key>
   -----END RSA PRIVATE KEY-----
+
+yc_sa_key: ''
 EOF
 
 ansible-vault encrypt variables/variables.vault.yml
