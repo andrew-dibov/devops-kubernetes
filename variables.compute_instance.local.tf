@@ -27,7 +27,7 @@ locals {
       }
 
       scheduling_policy = {
-        preemptible = true
+        preemptible = false
       }
 
       role = "master-a"
