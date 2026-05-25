@@ -3,9 +3,9 @@ orgAllowlist: "{{ atlantis_allowlist }}"
 
 githubApp:
   id: "{{ github_app_id }}"
-  key: |
-"{{ github_app_key }}"
   secret: "{{ github_app_secret }}"
+  key: |
+    {{ github_app_key | indent(4) }}
 
 volumeClaim:
   enabled: false
