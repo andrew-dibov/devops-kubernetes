@@ -20,8 +20,8 @@
 
 # ---
 
-backend.s3.tf
-data.virtual_private_cloud.tf
+# backend.s3.tf
+# data.virtual_private_cloud.tf
 
 *.terraform.yml
 *.vault.yml

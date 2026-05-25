@@ -12,3 +12,7 @@ variable "keys" {
   type    = string
   default = "keys"
 }
+
+variable "bucket" {
+  type = string
+}

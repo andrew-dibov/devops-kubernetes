@@ -11,7 +11,10 @@ github_app_key: |
   <rsa-private-key>
   -----END RSA PRIVATE KEY-----
 
-yc_sa_key: '<terraform-sa-key>'
+yc_sa_key: |
+  '<terraform-sa-key>'
+
+terraform_backend: ""
 EOF
 
 ansible-vault encrypt variables/variables.vault.yml
