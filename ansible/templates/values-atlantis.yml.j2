@@ -59,15 +59,9 @@ extraVolumeMounts:
     mountPath: /home/atlantis/.yandex
     readOnly: true
 
-  - name: terraform-files-volume
-    mountPath: /tmp/atlantis-tf-files
-    readOnly: true
-
 environment:
   YC_SERVICE_ACCOUNT_KEY_FILE: "/home/atlantis/.yandex/terraform.key.json"
-  S3_BUCKET_NAME: "{{ terraform_backend }}"
+  TF_VAR_bucket: "{{ terraform_backend }}"
 
 extraArgs:
-  - --tf-init-extra-args=-backend-config=bucket=${S3_BUCKET_NAME} -backend-config="key=kubernetes/terraform.tfstate" -backend-config="region=ru-central1" -backend-config="endpoints={s3=\"https://storage.yandexcloud.net\"}" -backend-config="skip_credentials_validation=true" -backend-config="skip_region_validation=true" -backend-config="use_path_style=true"
-  - --tf-plan-extra-args=-var="s3_bucket_name=${S3_BUCKET_NAME}"
-  - --tf-apply-extra-args=-var="s3_bucket_name=${S3_BUCKET_NAME}"
+  - --tf-init-extra-args=-backend-config=bucket=${TF_VAR_bucket}
