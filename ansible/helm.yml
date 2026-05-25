@@ -181,13 +181,7 @@
                 name: yc-sa-key
                 namespace: "{{ atlantis_namespace }}"
               stringData:
-                terraform.key.json: "{{ yc_sa_key | b64encode }}"
-
-        - name: ATLANTIS DEBUG
-          delegate_to: localhost
-          copy:
-            content: "{{ lookup('template', 'templates/values-atlantis.yml.j2') }}"
-            dest: /tmp/atlantis-values-debug.yaml
+                terraform.key.json: "{{ (yc_sa_key | string) }}"
 
         - name: "K8s : helm : install atlantis"
           kubernetes.core.helm:
@@ -198,11 +192,3 @@
             chart_version: "{{ helm_atlantis_version }}"
             kubeconfig: "{{ kubernetes_config }}"
             values: "{{ lookup('template', 'templates/values-atlantis.yml.j2') | from_yaml }}"
-
-    # - name: "K8s : helm : install blackbox"
-    #   kubernetes.core.helm:
-    #     name: blackbox-exporter
-    #     namespace: monitoring
-    #     chart_ref: prometheus-community/prometheus-blackbox-exporter
-    #     chart_version: "{{ helm_blackbox_version }}"
-    #     kubeconfig: "{{ kubernetes_config }}"

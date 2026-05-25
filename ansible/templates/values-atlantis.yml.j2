@@ -62,4 +62,6 @@ extraVolumeMounts:
 environment:
   YC_SERVICE_ACCOUNT_KEY_FILE: "/home/atlantis/.yandex/terraform.key.json"
   TF_VAR_bucket: "{{ terraform_backend }}"
-  TF_CLI_ARGS_init: "-backend-config=bucket=${TF_VAR_bucket}"
+  TF_CLI_ARGS_init: "-backend-config=bucket={{ terraform_backend }}"
+  AWS_ACCESS_KEY_ID: "{{ bucket_key_id }}"
+  AWS_SECRET_ACCESS_KEY: "{{ bucket_access_key }}"
