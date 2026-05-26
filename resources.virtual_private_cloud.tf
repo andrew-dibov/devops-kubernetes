@@ -6,7 +6,7 @@ resource "yandex_vpc_security_group" "sg__kubernetes" {
 
   ingress {
     protocol    = "TCP"
-    description = "Ingress SSH"
+    description = "Ingress SSH ATLANTIS CHANGE"
     v4_cidr_blocks = [
       data.terraform_remote_state.network.outputs.vpc__subnet_public_a_v4_cidr_blocks[0],
       data.terraform_remote_state.network.outputs.vpc__subnet_public_b_v4_cidr_blocks[0],
