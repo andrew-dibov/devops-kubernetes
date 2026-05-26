@@ -79,7 +79,7 @@ locals {
       }
 
       scheduling_policy = {
-        preemptible = true
+        preemptible = false
       }
 
       role = "worker-a"
@@ -105,7 +105,7 @@ locals {
       }
 
       scheduling_policy = {
-        preemptible = true
+        preemptible = false
       }
 
       role = "worker-b"

@@ -8,6 +8,8 @@ resource "yandex_compute_instance" "ci__kubernetes" {
   hostname    = each.key
   description = each.value.description
 
+  allow_stopping_for_update = true
+
   resources {
     cores         = each.value.resources.cores
     memory        = each.value.resources.memory
