@@ -24,8 +24,6 @@ if [[ -z "$LB_IP" ]]; then
     exit 1
 fi
 
-echo "$LB_IP"
-
 response=$(curl -s --user "${USERNAME}:${PASSWORD}" "https://freedns.afraid.org/nic/update?hostname=catchmemobbin.strangled.net&myip=${LB_IP}")
 echo "$domain : $response"
 

@@ -13,5 +13,6 @@ helm_atlantis_version: "6.4.0"
 
 helm_atlantis_url: http://atlantis.catchmemobbin.strangled.net
 helm_atlantis_allowlist: github.com/andrew-dibov/*
+helm_atlantis_persistent_volume_name: atlantis-pv
 helm_atlantis_persistent_volume_claim_name: atlantis-pvc
 helm_atlantis_namespace: kube-atlantis
