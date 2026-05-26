@@ -11,7 +11,7 @@ helm_ingress_version: "4.15.0"
 helm_prometheus_version: "85.2.0"
 helm_atlantis_version: "6.4.0"
 
-atlantis_url: http://atlantis.catchmemobbin.strangled.net
-atlantis_allowlist: github.com/andrew-dibov/*
-atlantis_pvc: atlantis
-atlantis_namespace: kube-atlantis
+helm_atlantis_url: http://atlantis.catchmemobbin.strangled.net
+helm_atlantis_allowlist: github.com/andrew-dibov/*
+helm_atlantis_persistent_volume_claim_name: atlantis-pvc
+helm_atlantis_namespace: kube-atlantis
