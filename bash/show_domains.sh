@@ -4,7 +4,7 @@ if [[ -z "$LB_IP" ]]; then
     exit 1
 fi
 
-echo "application : http://catchmemobbin.strangled.net : $LB_IP"
-echo "grafana : http://grafana.catchmemobbin.strangled.net : $LB_IP"
-echo "prometheus : http://prometheus.catchmemobbin.strangled.net : $LB_IP"
-echo "atlantis : http://atlantis.catchmemobbin.strangled.net : $LB_IP"
+echo "application : catchmemobbin.strangled.net : $LB_IP"
+echo "grafana : grafana.catchmemobbin.strangled.net : $LB_IP"
+echo "prometheus : prometheus.catchmemobbin.strangled.net : $LB_IP"
+echo "atlantis : atlantis.catchmemobbin.strangled.net : $LB_IP"
