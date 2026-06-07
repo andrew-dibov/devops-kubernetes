@@ -37,7 +37,7 @@ Ansible-плейбуки :
 | `kubernetes-1` | Установка пакетов, настройка `sysctl` и модулей ядра : `overlay`, `br_netfilter` и `nf_conntrack` |
 | `kubernetes-2` | Установка `containerd`, `runc` и `CNI plugins` |
 | `kubernetes-3` | Настройка `systemd` и установка : `kubeadm`, `kubelet` и `kubectl` |
-| `kubernetes-4` | `master-a` : инициализация кластера с `podCIDR 10.244.0.0/16`, установка `Flannel`, экспорт join-команд, копирование `kubeconfig` |
+| `kubernetes-4` | `master-a` : инициализация кластера, установка `Flannel`, экспорт join-команд, копирование `kubeconfig` |
 | `kubernetes-5` | `master-b` : подключение `control plane` |
 | `kubernetes-6` | `worker-a`, `worker-b` : добавление в кластер |
 | `helm` | Установка и развертывание : Ingress NGINX, Prometheus Stack и Atlantis |
