@@ -54,12 +54,12 @@ Ansible-плейбуки :
 
 | Категория | Технологии/Инструменты | Навыки |
 | :-- | :-- | :-- |
-| **Infrastructure as Code, IaC** | Terraform, Yandex Provider | Управление инфраструктурой с зависимостями между проектами |
-| **Yandex Cloud, YC** | Compute Cloud, VPC, Load Balancer, Lockbox | Создание VM в приватных сетях, настройка балансировщиков, интеграция с Lockbox |
-| **Configuration Management** | Ansible | Идемпотентная настройка ОС и K8s, установка бинарных компонентов, работа с Helm |
-| **Kubernetes** | kubeadm, containerd, runc, flannel, kubectl, NodePort, Ingress NGINX, Helm | Развертывание HA-кластера с control plane балансировкой, подключение узлов, установка чартов |
+| **Infrastructure as Code, IaC** | Terraform, Yandex Provider | Инфраструктура с зависимостями между проектами |
+| **Yandex Cloud, YC** | Compute Cloud, VPC, Load Balancer, Lockbox | Создание VM, настройка балансировки, интеграция с хранилищем секретов |
+| **Configuration Management** | Ansible | Идемпотентное развертывание K8s, установка компонентов, работа с Helm |
+| **Kubernetes** | kubeadm, containerd, runc, flannel, kubectl, helm | Развертывание HA-кластера с балансировкой control plane, установка чартов |
 | **GitOps & CI/CD** | Atlantis + GitHub App | Настройка вебхуков, автоматический план/применение PR |
-| **Observability** | Prometheus, Grafana, Alertmanager | Развертывание и конфигурация |
+| **Observability** | Prometheus, Grafana, Alertmanager | Развертывание и начальная конфигурация |
 
 ## Развертывание
 
