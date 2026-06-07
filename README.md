@@ -44,9 +44,9 @@
 
 | Приложение | Назначение |
 | :-- | :-- |
-| Ingress NGINX | Прием внешнего трафика |
-| Atlantis | Автоматизация Terraform |
-| Prometheus Stack | Observability |
+| **Ingress NGINX** | Прием внешнего трафика |
+| **Atlantis** | Автоматизация Terraform |
+| **Prometheus Stack** | Observability |
 
 ## Технологии и навыки
 
