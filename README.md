@@ -1,6 +1,6 @@
 # Kubernetes
 
-Отказоустойчивый кластер Kubernetes. Создание VM, настройка безопасности, установка K8s, инициализация control plane, подключение дополнительных узлов с последующим азвертыванием : Ingress NGINX, Prometheus Stack и Atlantis.
+Создание отказоустойчивого кластера Kubernetes. Создание VM, настройка безопасности, установка K8s, инициализация control plane, подключение дополнительных узлов с последующим развертыванием : Ingress NGINX, Prometheus Stack и Atlantis.
 
 ## Архитектура
 
@@ -13,9 +13,9 @@
   - `ci--master-a` : `ru-central1-a`
   - `ci--master-b` : `ru-central1-b`
   - `ci--worker-a` : `ru-central1-a`
-  - `ci--worker-a` : `ru-central1-b`
+  - `ci--worker-b` : `ru-central1-b`
 - **Группа безопасности** :
-  - `SSH` : из публичных подсетей : Бастион
+  - `SSH` : из публичных подсетей
   - `HTTP/HTTPS` : из интернета : `0.0.0.0/0`
   - `K8s API` : из интернета : `6443`
   - `NodePort` : для ingress : `30080` и `30443`
@@ -28,7 +28,7 @@
     - `TCP 80` -> `worker-a:30080`, `worker-b:30080`
     - `TCP 443` -> `worker-a:30443`, `worker-b:30443`
 
-### Слой 2 : Bootstrap кластера K8s : Bash + Ansible
+### Слой 2 : Bootstrap кластера : Bash + Ansible
 
 Ansible-плейбуки :
 
@@ -42,7 +42,7 @@ Ansible-плейбуки :
 | `kubernetes-6` | `worker-a`, `worker-b` : добавление в кластер |
 | `helm` | Установка и развертывание : Ingress NGINX, Prometheus Stack и Atlantis |
 
-### Слой 3 : Приложения
+### Слой 3 : Приложения : Ansible + Helm
 
 | Приложение | Назначение |
 | :-- | :-- |
@@ -58,7 +58,7 @@ Ansible-плейбуки :
 | **Yandex Cloud, YC** | Compute Cloud, VPC, Load Balancer, Lockbox | Создание VM в приватных сетях, настройка балансировщиков, интеграция с Lockbox |
 | **Configuration Management** | Ansible | Идемпотентная настройка ОС и K8s, установка бинарных компонентов, работа с Helm |
 | **Kubernetes** | kubeadm, containerd, runc, flannel, kubectl, NodePort, Ingress NGINX, Helm | Развертывание HA-кластера с control plane балансировкой, подключение узлов, установка чартов |
-| **GitOps & CI/CD** | Atlantis + GitHub App | Настрйока вебхуков, автоматический план/применение PR |
+| **GitOps & CI/CD** | Atlantis + GitHub App | Настройка вебхуков, автоматический план/применение PR |
 | **Observability** | Prometheus, Grafana, Alertmanager | Развертывание и конфигурация |
 
 ## Развертывание
