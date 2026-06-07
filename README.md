@@ -1,55 +1,65 @@
-# [DevOps](https://github.com/andrew-dibov/devops) : Kubernetes кластер
+# Kubernetes
+
+Отказоустойчивый кластер Kubernetes. Создание VM, настройка безопасности, установка K8s, инициализация control plane, подключение дополнительных узлов с последующим азвертыванием : Ingress NGINX, Prometheus Stack и Atlantis.
 
 ## Архитектура
 
-### Слой 1 : Инфраструктура
+> Проект опирается на [network](https://github.com/andrew-dibov/devops-network)
 
-- **Сеть** : использование outputs из [проекта сетевой инфраструктуры](https://github.com/andrew-dibov/devops-network)
+### Слой 1 : Инфраструктура : Terraform + Yandex Cloud
+
+- **Сеть** : outputs из [network](https://github.com/andrew-dibov/devops-network)
 - **VM Kubernetes** :
   - `ci--master-a` : `ru-central1-a`
   - `ci--master-b` : `ru-central1-b`
   - `ci--worker-a` : `ru-central1-a`
   - `ci--worker-a` : `ru-central1-b`
-- **Безопасность** : группа безопасности, разрешающая :
-  - `SSH` : только из публичных подсетей : Бастион
+- **Группа безопасности** :
+  - `SSH` : из публичных подсетей : Бастион
   - `HTTP/HTTPS` : из интернета : `0.0.0.0/0`
   - `K8s API` : из интернета : `6443`
-  - `NodePort` : для ingress : `30080`, `30443`
-  - Весь внутренний трафик между подсетями `/16`
-  - Весь исходящий трафик : NAT-шлюз
-- **Балансировка нагрузки** :
+  - `NodePort` : для ingress : `30080` и `30443`
+  - Внутренний трафик подсетей `/16`
+  - Исходящий трафик : `NAT`
+- **Балансировка входящего трафика** :
   - **API Load Balancer** :
     - `TCP 6443` -> `master-a:6443`, `master-b:6443`
   - **Ingress Load Balancer** :
     - `TCP 80` -> `worker-a:30080`, `worker-b:30080`
     - `TCP 443` -> `worker-a:30443`, `worker-b:30443`
-- **Ansible** : автоматическая генерация артефактов : инвентари и переменные
 
-### Слой 2 : Bootstrap кластера K8s
+### Слой 2 : Bootstrap кластера K8s : Bash + Ansible
 
-Ansible-плейбуки последовательно выполняются Bash-скриптом :
+Ansible-плейбуки :
 
 | Плейбук | Назначение |
 | :-- | :-- |
-| `kubernetes-1.yml` | Настройка ОС : модули ядра (`overlay`, `br_netfilter`, `nf_conntrack`), параметры `sysctl`, установка базовых пакетов |
-| `kubernetes-2.yml` | Установка `containerd`, `runc`, `CNI plugins` из официальных релизов GitHub |
-| `kubernetes-3.yml` | Установка `kubeadm`, `kubelet`, `kubectl` и настройка `systemd` |
-| `kubernetes-4.yml` | `master-a` : инициализация кластера с `podCIDR` `10.244.0.0/16`, установка `CNI flannel`, генерация join-команд, копирование `kubeconfig` |
-| `kubernetes-5.yml` | `master-b` : подключение к `control-plane` |
-| `kubernetes-6.yml` | `worker-a`, `worker-b` : подключение в кластер |
-| `helm.yml` | Установка `helm`, добавление репозиториев, установка чартов : `ingress nginx`, `kube-prometheus-stack`, `atlantis` |
+| `kubernetes-1` | Установка пакетов, настройка `sysctl` и модулей ядра : `overlay`, `br_netfilter` и `nf_conntrack` |
+| `kubernetes-2` | Установка `containerd`, `runc` и `CNI plugins` |
+| `kubernetes-3` | Настройка `systemd` и установка : `kubeadm`, `kubelet` и `kubectl` |
+| `kubernetes-4` | `master-a` : инициализация кластера с `podCIDR 10.244.0.0/16`, установка `Flannel`, экспорт join-команд, копирование `kubeconfig` |
+| `kubernetes-5` | `master-b` : подключение `control plane` |
+| `kubernetes-6` | `worker-a`, `worker-b` : добавление в кластер |
+| `helm` | Установка и развертывание : Ingress NGINX, Prometheus Stack и Atlantis |
 
 ### Слой 3 : Приложения
 
-- **Ingress Nginx** : прием трафика с внешнего балансировщика нагрузки
-- **Prometheus Stack** : Prometheus, Grafana, Alertmanager
-- **Atlantis** : проверка и применение Terraform
+| Приложение | Назначение |
+| :-- | :-- |
+| Ingress NGINX | Получение трафика с внешнего балансировщика |
+| Prometheus Stack | Prometheus, Grafana, Alertmanager |
+| Atlantis | Автоматизация Terraform |
 
 ## Технологии и навыки
 
 | Категория | Технологии/Инструменты | Навыки |
 | :-- | :-- | :-- |
-|
+| **Infrastructure as Code, IaC** | Terraform, Yandex Provider | Управление инфраструктурой с зависимостями между проектами |
+| **Yandex Cloud, YC** | Compute Cloud, VPC, Load Balancer, Lockbox | Создание VM в приватных сетях, настройка балансировщиков, интеграция с Lockbox |
+| **Configuration Management** | Ansible | Идемпотентная настройка ОС и K8s, установка бинарных компонентов, работа с Helm |
+| **Kubernetes** | kubeadm, containerd, runc, flannel, kubectl, NodePort, Ingress NGINX, Helm | Развертывание HA-кластера с control plane балансировкой, подключение узлов, установка чартов |
+| **GitOps & CI/CD** | Atlantis + GitHub App | Настрйока вебхуков, автоматический план/применение PR |
+| **Observability** | Prometheus, Grafana, Alertmanager | Развертывание и конфигурация |
 
 ## Развертывание
 
@@ -60,15 +70,12 @@ git clone git@github.com:andrew-dibov/devops-kubernetes.git && cd devops-kuberne
 # запустить скрипт инициализации
 sudo chmod +x bash/* && ./bash/init.sh
 
-# запустить скрипт обновления доменов
+# обновить домены
 ./bash/update_domains.sh
 
 # если планируешь работать дальше
 source .env
 
-# перейти к следующему этапу развертывания
-cd ansible
-
 # запустить ansible-плейбуки
-sudo chmod +x bash/* && ./bash/deploy.sh
+(cd ansible && sudo chmod +x bash/* && ./bash/deploy.sh)
 ```
